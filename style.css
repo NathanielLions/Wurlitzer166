@@ -1,30 +1,29 @@
-body { font-family: sans-serif; background: #222; color: #fff; padding: 20px; }
-.stops-panel { display: flex; gap: 20px; margin-bottom: 30px; }
-.stop-group { background: #333; padding: 15px; border-radius: 8px; }
-.stop-group h3 { margin-top: 0; font-size: 14px; color: #aaa; }
+body { font-family: 'Segoe UI', Tahoma, sans-serif; background: #1a1a1a; color: #f5f5f5; padding: 20px; margin: 0; }
+header { background: #2a2a2a; padding: 20px; border-radius: 8px; margin-bottom: 20px; border-bottom: 3px solid #d4af37; }
+h1 { margin: 0 0 15px 0; font-size: 24px; color: #d4af37; }
+.controls { display: flex; gap: 20px; flex-wrap: wrap; align-items: flex-end; }
+.file-group { display: flex; flex-direction: column; gap: 5px; }
+.file-group label { font-size: 13px; color: #aaa; font-weight: bold; }
+input[type="file"] { background: #333; padding: 8px; border-radius: 4px; border: 1px solid #444; color: #fff; font-size: 13px; cursor: pointer; }
 
-/* The Stop Buttons */
-.stop-btn {
-    display: block;
-    width: 100%;
-    margin-bottom: 8px;
-    padding: 10px;
-    background: #444;
-    color: #fff;
-    border: 2px solid #555;
-    border-radius: 4px;
-    cursor: pointer;
-    transition: all 0.2s;
-}
+.playback-controls { display: flex; gap: 10px; }
+.playback-controls button { padding: 10px 20px; font-size: 14px; font-weight: bold; border: none; border-radius: 4px; cursor: pointer; transition: 0.2s; }
+#play-btn { background: #27ae60; color: white; }
+#play-btn:disabled { background: #2c3e50; color: #555; cursor: not-allowed; }
+#stop-btn { background: #c0392b; color: white; }
+#stop-btn:disabled { background: #2c3e50; color: #555; cursor: not-allowed; }
 
-/* The ON State */
-.stop-btn.active {
-    background: #d4af37; /* Gold color for active stops */
-    color: #000;
-    border-color: #f1c40f;
-    box-shadow: 0 0 10px rgba(241, 196, 15, 0.5);
-}
+.stops-panel { display: flex; flex-wrap: wrap; gap: 20px; margin-bottom: 30px; }
+.stop-group { background: #2a2a2a; padding: 15px; border-radius: 8px; flex: 1; min-width: 200px; border: 1px solid #333; }
+.group-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; padding-bottom: 8px; border-bottom: 1px solid #444; }
+.group-header h3 { margin: 0; font-size: 16px; color: #eee; }
 
-/* Keyboards placeholder */
-.keyboard { height: 80px; background: #111; margin-bottom: 10px; position: relative; border: 1px solid #444; }
-.keyboard::before { content: attr(data-name); position: absolute; top: 5px; left: 10px; color: #666; font-size: 12px; }
+/* The new manual channel selector */
+.channel-select { background: #111; color: #d4af37; border: 1px solid #555; padding: 3px 5px; border-radius: 4px; font-size: 12px; cursor: pointer; font-weight: bold;}
+
+.stop-btn { display: block; width: 100%; margin-bottom: 8px; padding: 10px; background: #3a3a3a; color: #ccc; border: 2px solid #555; border-radius: 4px; cursor: pointer; transition: all 0.1s; font-weight: 500; }
+.stop-btn.active { background: #d4af37; color: #000; border-color: #f1c40f; box-shadow: 0 0 10px rgba(241, 196, 15, 0.4); }
+
+.keyboards-panel { display: flex; flex-direction: column; gap: 15px; }
+.keyboard { height: 60px; background: repeating-linear-gradient(90deg, #eee 0px, #eee 20px, #ccc 20px, #ccc 22px); border-radius: 4px; position: relative; border: 3px solid #111; opacity: 0.8; }
+.keyboard::before { content: attr(data-name); position: absolute; top: -10px; left: 10px; background: #1a1a1a; padding: 0 5px; color: #d4af37; font-size: 12px; font-weight: bold; }
