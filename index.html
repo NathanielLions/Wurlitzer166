@@ -11,6 +11,9 @@
         <div class="controls">
             <input type="file" id="soundfont-upload" accept=".sf2,.sf3" title="Upload SoundFont">
             <input type="file" id="midi-upload" accept=".mid,.midi" title="Upload MIDI">
+            
+            <button id="play-btn" disabled>Play MIDI</button>
+            <button id="stop-btn" disabled>Stop</button>
             <button id="export-btn" disabled>Start Recording</button>
         </div>
     </header>
@@ -25,6 +28,6 @@
         </div>
     </main>
 
-    <script src="app.js"></script>
+    <script type="module" src="app.js"></script>
 </body>
 </html>
