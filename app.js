@@ -1,3 +1,7 @@
+// Import SpessaSynth directly from the web
+import { WorkletSynthesizer, Sequencer } from 'https://cdn.jsdelivr.net/npm/spessasynth_lib@latest/+esm';
+
+// --- YOUR WURLITZER LOGIC ---
 const organStructure = {
     "Countermelody (Ch 2)": [ { val: 15, name: "Prestant" }, { val: 82, name: "Soft Violin" }, { val: 40, name: "Loud Violin" }, { val: 75, name: "Flageolet" }, { val: 73, name: "Flute" }, { val: 8, name: "Bells" }, { val: 9, name: "Unaphone" } ],
     "Accompaniment (Ch 3)": [ { val: 11, name: "Stopped Flute" }, { val: 70, name: "Open Flute" }, { val: 79, name: "Strings" } ],
@@ -5,15 +9,11 @@ const organStructure = {
     "Bass (Ch 4)": [ { val: 58, name: "Bass Flute" }, { val: 43, name: "Wooden Trombone" }, { val: 50, name: "Brass Trombone" }]
 };
 
-// 1. Build the UI
 function initializeStopsUI() {
     const container = document.getElementById('stops-container');
-    
     for (const [groupName, stops] of Object.entries(organStructure)) {
-        // Extract channel number from the string (e.g., "Countermelody (Ch 2)" -> 2)
         const channelMatch = groupName.match(/Ch (\d+)/);
         const channel = channelMatch ? parseInt(channelMatch[1]) : 0;
-
         const groupDiv = document.createElement('div');
         groupDiv.className = 'stop-group';
         groupDiv.innerHTML = `<h3>${groupName}</h3>`;
@@ -22,16 +22,11 @@ function initializeStopsUI() {
             const btn = document.createElement('button');
             btn.className = 'stop-btn';
             btn.innerText = stop.name;
-            // Store the CC and Channel in data attributes for easy access
             btn.dataset.cc = stop.val;
             btn.dataset.channel = channel;
             
-            // Allow manual clicking
             btn.addEventListener('click', () => {
                 btn.classList.toggle('active');
-                const isNowOn = btn.classList.contains('active');
-                // TODO: Send this manual override back to SpessaSynth
-                // e.g., synth.controllerChange(channel - 1, stop.val, isNowOn ? 127 : 0);
             });
 
             groupDiv.appendChild(btn);
@@ -40,70 +35,96 @@ function initializeStopsUI() {
     }
 }
 
-// 2. Intercept MIDI from SpessaSynth
-// This function will be called by your SpessaSynth MIDI event listener
-function handleMidiCC(channel, ccNumber, value) {
-    // Note: MIDI channels in code are usually 0-15. Your labels are 1-16.
-    const displayChannel = channel + 1; 
+// --- SPESSASYNTH AUDIO ENGINE ---
+let audioContext;
+let synth;
+let sequencer;
+let midiData; // Holds the uploaded MIDI file in memory
+
+async function initAudioEngine() {
+    if (audioContext) return; // Already initialized
+
+    // Create the audio context
+    audioContext = new (window.AudioContext || window.webkitAudioContext)();
     
-    // Find the button that matches this channel and CC
-    const button = document.querySelector(`.stop-btn[data-channel="${displayChannel}"][data-cc="${ccNumber}"]`);
-    
-    if (button) {
-        // MIDI CC > 63 is generally considered "ON"
-        if (value > 63) {
-            button.classList.add('active');
-        } else {
-            button.classList.remove('active');
-        }
+    try {
+        // Load the background audio processor file
+        await audioContext.audioWorklet.addModule('https://cdn.jsdelivr.net/npm/spessasynth_lib@latest/dist/spessasynth_processor.min.js');
+        
+        // Initialize the Synthesizer
+        synth = new WorkletSynthesizer(audioContext);
+        await synth.isReady;
+        console.log("Audio Engine Ready!");
+    } catch (err) {
+        console.error("Failed to load SpessaSynth Worklet:", err);
+        alert("Could not load the audio engine. Check the console.");
     }
 }
 
-// 3. Audio Export Logic (Web Audio API MediaRecorder)
-let mediaRecorder;
-let audioChunks = [];
+// --- EVENT LISTENERS ---
 
-function setupRecording(audioContext, synthOutputNode) {
-    const dest = audioContext.createMediaStreamDestination();
-    synthOutputNode.connect(dest);
+// 1. Upload SoundFont
+document.getElementById('soundfont-upload').addEventListener('change', async (e) => {
+    await initAudioEngine();
     
-    mediaRecorder = new MediaRecorder(dest.stream);
-    const exportBtn = document.getElementById('export-btn');
-    exportBtn.disabled = false;
+    const file = e.target.files[0];
+    if (!file) return;
 
-    mediaRecorder.ondataavailable = (e) => {
-        if (e.data.size > 0) audioChunks.push(e.data);
-    };
+    const arrayBuffer = await file.arrayBuffer();
+    
+    // Pass the raw .sf2 data to SpessaSynth
+    await synth.soundBankManager.addSoundBank(arrayBuffer, "main");
+    console.log("SoundFont successfully loaded into SpessaSynth!");
+});
 
-    mediaRecorder.onstop = () => {
-        const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
-        const audioUrl = URL.createObjectURL(audioBlob);
-        
-        // Create an automatic download link
-        const a = document.createElement('a');
-        a.href = audioUrl;
-        a.download = 'Wurlitzer-166-Export.webm';
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        
-        audioChunks = []; // Reset for next recording
-    };
+// 2. Upload MIDI
+document.getElementById('midi-upload').addEventListener('change', async (e) => {
+    await initAudioEngine();
 
-    exportBtn.addEventListener('click', () => {
-        if (mediaRecorder.state === 'inactive') {
-            mediaRecorder.start();
-            exportBtn.innerText = 'Stop Recording & Save';
-            exportBtn.style.background = '#e74c3c';
-        } else {
-            mediaRecorder.stop();
-            exportBtn.innerText = 'Start Recording';
-            exportBtn.style.background = '';
-        }
-    });
-}
+    const file = e.target.files[0];
+    if (!file) return;
 
-// Initialize the UI on load
+    const arrayBuffer = await file.arrayBuffer();
+    // SpessaSynth reads the arraybuffer to parse the MIDI tracks
+    midiData = [{ binary: new Uint8Array(arrayBuffer) }]; 
+
+    // Enable the play button now that we have a file
+    document.getElementById('play-btn').disabled = false;
+    console.log("MIDI File loaded into memory!");
+});
+
+// 3. Play Button
+document.getElementById('play-btn').addEventListener('click', async () => {
+    if (!synth || !midiData) return;
+
+    // Browsers suspend audio context if it isn't playing; we must wake it up
+    if (audioContext.state === 'suspended') {
+        await audioContext.resume();
+    }
+
+    // Stop existing sequence if one is playing
+    if (sequencer) sequencer.stop();
+
+    // Create a new sequencer instance with our MIDI data and the synthesizer
+    sequencer = new Sequencer(midiData, synth);
+    sequencer.play();
+    
+    document.getElementById('stop-btn').disabled = false;
+    console.log("Playback started!");
+
+    // TODO: We will hook up the MIDI CC listener here in the next step!
+});
+
+// 4. Stop Button
+document.getElementById('stop-btn').addEventListener('click', () => {
+    if (sequencer) {
+        sequencer.stop();
+        synth.stopAll(); // Instantly kill lingering reverb/notes
+        console.log("Playback stopped.");
+    }
+});
+
+// Initialize the buttons on the screen immediately
 document.addEventListener('DOMContentLoaded', () => {
     initializeStopsUI();
 });
