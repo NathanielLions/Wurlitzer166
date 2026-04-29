@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Virtual Wurlitzer 166</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <header>
+        <h1>Virtual Wurlitzer 166</h1>
+        <div class="controls">
+            <input type="file" id="soundfont-upload" accept=".sf2,.sf3" title="Upload SoundFont">
+            <input type="file" id="midi-upload" accept=".mid,.midi" title="Upload MIDI">
+            <button id="export-btn" disabled>Start Recording</button>
+        </div>
+    </header>
+
+    <main>
+        <div id="stops-container" class="stops-panel"></div>
+
+        <div class="keyboards-panel">
+            <div id="keyboard-trumpet" class="keyboard" data-name="Trumpet Melody (Ch 1)"></div>
+            <div id="keyboard-counter" class="keyboard" data-name="Countermelody (Ch 2)"></div>
+            <div id="keyboard-accomp-bass" class="keyboard" data-name="Accompaniment & Bass (Ch 3 & 4)"></div>
+        </div>
+    </main>
+
+    <script src="app.js"></script>
+</body>
+</html>
