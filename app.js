@@ -1,5 +1,5 @@
-// Pinned to version 4.1.2 to prevent 404 errors!
-import { WorkletSynthesizer, Sequencer } from 'https://cdn.jsdelivr.net/npm/spessasynth_lib@4.1.2/+esm';
+// Using @latest ensures the Sequencer and the Synthesizer versions perfectly match
+import { WorkletSynthesizer, Sequencer } from 'https://cdn.jsdelivr.net/npm/spessasynth_lib@latest/+esm';
 
 // We map the default channels so they can be changed via the dropdowns
 const organStructure = {
@@ -125,13 +125,8 @@ async function initAudioEngine() {
     try {
         audioContext = new (window.AudioContext || window.webkitAudioContext)();
         
-        // Try the minified worklet file first
-        try {
-            await audioContext.audioWorklet.addModule('https://cdn.jsdelivr.net/npm/spessasynth_lib@4.1.2/dist/spessasynth_processor.min.js');
-        } catch (e) {
-            // Fallback to standard file if minified is missing
-            await audioContext.audioWorklet.addModule('https://cdn.jsdelivr.net/npm/spessasynth_lib@4.1.2/dist/spessasynth_processor.js');
-        }
+        // Load the latest processor explicitly to prevent 404s
+        await audioContext.audioWorklet.addModule('https://cdn.jsdelivr.net/npm/spessasynth_lib@latest/dist/spessasynth_processor.min.js');
         
         synth = new WorkletSynthesizer(audioContext);
         await synth.isReady;
@@ -152,7 +147,7 @@ document.getElementById('soundfont-upload').addEventListener('change', async (e)
         
         const arrayBuffer = await file.arrayBuffer();
         await synth.soundBankManager.addSoundBank(arrayBuffer, "main");
-        alert(`SoundFont '${file.name}' loaded successfully!`); 
+        alert(`SoundFont loaded successfully!`); 
     } catch (err) {
         alert("Error loading SoundFont: " + err.message);
     }
@@ -168,7 +163,7 @@ document.getElementById('midi-upload').addEventListener('change', async (e) => {
         midiData = [{ binary: new Uint8Array(arrayBuffer) }]; 
         
         document.getElementById('play-btn').disabled = false;
-        alert(`Song '${file.name}' loaded! You can now press Play.`); 
+        alert(`Song loaded! You can now press Play.`); 
     } catch (err) {
         alert("Error loading MIDI: " + err.message);
     }
