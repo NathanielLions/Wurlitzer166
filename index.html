@@ -9,12 +9,18 @@
     <header>
         <h1>Virtual Wurlitzer 166</h1>
         <div class="controls">
-            <input type="file" id="soundfont-upload" accept=".sf2,.sf3" title="Upload SoundFont">
-            <input type="file" id="midi-upload" accept=".mid,.midi" title="Upload MIDI">
-            
-            <button id="play-btn" disabled>Play MIDI</button>
-            <button id="stop-btn" disabled>Stop</button>
-            <button id="export-btn" disabled>Start Recording</button>
+            <div class="file-group">
+                <label>1. Load Organ (.sf2)</label>
+                <input type="file" id="soundfont-upload" accept=".sf2,.sf3">
+            </div>
+            <div class="file-group">
+                <label>2. Load Song (.mid)</label>
+                <input type="file" id="midi-upload" accept=".mid,.midi">
+            </div>
+            <div class="playback-controls">
+                <button id="play-btn" disabled>▶ Play MIDI</button>
+                <button id="stop-btn" disabled>■ Stop</button>
+            </div>
         </div>
     </header>
 
@@ -22,9 +28,9 @@
         <div id="stops-container" class="stops-panel"></div>
 
         <div class="keyboards-panel">
-            <div id="keyboard-trumpet" class="keyboard" data-name="Trumpet Melody (Ch 1)"></div>
-            <div id="keyboard-counter" class="keyboard" data-name="Countermelody (Ch 2)"></div>
-            <div id="keyboard-accomp-bass" class="keyboard" data-name="Accompaniment & Bass (Ch 3 & 4)"></div>
+            <div class="keyboard" data-name="Trumpet Melody"></div>
+            <div class="keyboard" data-name="Accompaniment"></div>
+            <div class="keyboard" data-name="Countermelody & Bass"></div>
         </div>
     </main>
 
