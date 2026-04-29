@@ -1,19 +1,22 @@
 // Import SpessaSynth directly from the web
 import { WorkletSynthesizer, Sequencer } from 'https://cdn.jsdelivr.net/npm/spessasynth_lib@latest/+esm';
 
-// --- YOUR WURLITZER LOGIC ---
+// Updated to your new channel structure
 const organStructure = {
-    "Countermelody (Ch 2)": [ { val: 15, name: "Prestant" }, { val: 82, name: "Soft Violin" }, { val: 40, name: "Loud Violin" }, { val: 75, name: "Flageolet" }, { val: 73, name: "Flute" }, { val: 8, name: "Bells" }, { val: 9, name: "Unaphone" } ],
-    "Accompaniment (Ch 3)": [ { val: 11, name: "Stopped Flute" }, { val: 70, name: "Open Flute" }, { val: 79, name: "Strings" } ],
-    "Trumpetmelody (Ch 1)": [ { val: 68, name: "Viola Bassoon" }, { val: 56, name: "Wooden Trumpet" }, { val: 66, name: "Brass Trumpet" } ],
+    "Trumpetmelody (Ch 3)": [ { val: 68, name: "Viola Bassoon" }, { val: 56, name: "Wooden Trumpet" }, { val: 66, name: "Brass Trumpet" } ],
+    "Accompaniment (Ch 2)": [ { val: 11, name: "Stopped Flute" }, { val: 70, name: "Open Flute" }, { val: 79, name: "Strings" } ],
+    "Countermelody (Ch 4)": [ { val: 15, name: "Prestant" }, { val: 82, name: "Soft Violin" }, { val: 40, name: "Loud Violin" }, { val: 75, name: "Flageolet" }, { val: 73, name: "Flute" }, { val: 8, name: "Bells" }, { val: 9, name: "Unaphone" } ],
     "Bass (Ch 4)": [ { val: 58, name: "Bass Flute" }, { val: 43, name: "Wooden Trombone" }, { val: 50, name: "Brass Trombone" }]
 };
 
 function initializeStopsUI() {
     const container = document.getElementById('stops-container');
+    container.innerHTML = ''; // Clear container on load
+    
     for (const [groupName, stops] of Object.entries(organStructure)) {
         const channelMatch = groupName.match(/Ch (\d+)/);
         const channel = channelMatch ? parseInt(channelMatch[1]) : 0;
+        
         const groupDiv = document.createElement('div');
         groupDiv.className = 'stop-group';
         groupDiv.innerHTML = `<h3>${groupName}</h3>`;
@@ -39,92 +42,95 @@ function initializeStopsUI() {
 let audioContext;
 let synth;
 let sequencer;
-let midiData; // Holds the uploaded MIDI file in memory
+let midiData; 
+
+function handleMidiCC(channel, ccNumber, value) {
+    const displayChannel = channel + 1; 
+    const button = document.querySelector(`.stop-btn[data-channel="${displayChannel}"][data-cc="${ccNumber}"]`);
+    
+    if (button) {
+        if (value > 63) button.classList.add('active');
+        else button.classList.remove('active');
+    }
+}
+
+function hookUpUI() {
+    const originalControllerChange = synth.controllerChange.bind(synth);
+    synth.controllerChange = (channel, cc, value) => {
+        handleMidiCC(channel, cc, value);
+        originalControllerChange(channel, cc, value);
+    };
+}
 
 async function initAudioEngine() {
-    if (audioContext) return; // Already initialized
-
-    // Create the audio context
-    audioContext = new (window.AudioContext || window.webkitAudioContext)();
-    
+    if (audioContext) return; 
     try {
-        // Load the background audio processor file
-        await audioContext.audioWorklet.addModule('https://cdn.jsdelivr.net/npm/spessasynth_lib@latest/dist/spessasynth_processor.min.js');
+        audioContext = new (window.AudioContext || window.webkitAudioContext)();
         
-        // Initialize the Synthesizer
+        // Changed the URL slightly to avoid missing file errors on the CDN
+        await audioContext.audioWorklet.addModule('https://cdn.jsdelivr.net/npm/spessasynth_lib@latest/dist/spessasynth_processor.js');
+        
         synth = new WorkletSynthesizer(audioContext);
         await synth.isReady;
+        hookUpUI(); 
         console.log("Audio Engine Ready!");
     } catch (err) {
-        console.error("Failed to load SpessaSynth Worklet:", err);
-        alert("Could not load the audio engine. Check the console.");
+        alert("Uh oh, the audio engine failed to load: " + err.message);
+        console.error(err);
     }
 }
 
 // --- EVENT LISTENERS ---
 
-// 1. Upload SoundFont
 document.getElementById('soundfont-upload').addEventListener('change', async (e) => {
-    await initAudioEngine();
-    
-    const file = e.target.files[0];
-    if (!file) return;
-
-    const arrayBuffer = await file.arrayBuffer();
-    
-    // Pass the raw .sf2 data to SpessaSynth
-    await synth.soundBankManager.addSoundBank(arrayBuffer, "main");
-    console.log("SoundFont successfully loaded into SpessaSynth!");
+    try {
+        await initAudioEngine();
+        const file = e.target.files[0];
+        if (!file) return;
+        const arrayBuffer = await file.arrayBuffer();
+        await synth.soundBankManager.addSoundBank(arrayBuffer, "main");
+        alert("SoundFont loaded successfully!"); // Added confirmation popup
+    } catch (err) {
+        alert("Error loading SoundFont: " + err.message);
+    }
 });
 
-// 2. Upload MIDI
 document.getElementById('midi-upload').addEventListener('change', async (e) => {
-    await initAudioEngine();
-
-    const file = e.target.files[0];
-    if (!file) return;
-
-    const arrayBuffer = await file.arrayBuffer();
-    // SpessaSynth reads the arraybuffer to parse the MIDI tracks
-    midiData = [{ binary: new Uint8Array(arrayBuffer) }]; 
-
-    // Enable the play button now that we have a file
-    document.getElementById('play-btn').disabled = false;
-    console.log("MIDI File loaded into memory!");
+    try {
+        await initAudioEngine();
+        const file = e.target.files[0];
+        if (!file) return;
+        const arrayBuffer = await file.arrayBuffer();
+        midiData = [{ binary: new Uint8Array(arrayBuffer) }]; 
+        
+        document.getElementById('play-btn').disabled = false;
+        alert("MIDI loaded! You can now click Play."); // Added confirmation popup
+    } catch (err) {
+        alert("Error loading MIDI: " + err.message);
+    }
 });
 
-// 3. Play Button
 document.getElementById('play-btn').addEventListener('click', async () => {
     if (!synth || !midiData) return;
 
-    // Browsers suspend audio context if it isn't playing; we must wake it up
     if (audioContext.state === 'suspended') {
         await audioContext.resume();
     }
-
-    // Stop existing sequence if one is playing
     if (sequencer) sequencer.stop();
 
-    // Create a new sequencer instance with our MIDI data and the synthesizer
     sequencer = new Sequencer(midiData, synth);
     sequencer.play();
     
     document.getElementById('stop-btn').disabled = false;
-    console.log("Playback started!");
-
-    // TODO: We will hook up the MIDI CC listener here in the next step!
 });
 
-// 4. Stop Button
 document.getElementById('stop-btn').addEventListener('click', () => {
     if (sequencer) {
         sequencer.stop();
-        synth.stopAll(); // Instantly kill lingering reverb/notes
-        console.log("Playback stopped.");
+        synth.stopAll(); 
     }
 });
 
-// Initialize the buttons on the screen immediately
 document.addEventListener('DOMContentLoaded', () => {
     initializeStopsUI();
 });
